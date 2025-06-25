@@ -9,7 +9,7 @@ model = pickle.load(open('crop_model_v2.pkl', 'rb'))
 label_encoder = pickle.load(open('label_encoder_v2.pkl', 'rb'))
 
 # تحميل نموذج التنبؤ المستقبلي
-forecast_model = pickle.load(open('improved_forecast_model.pkl', 'rb'))
+forecast_model = pickle.load(open('forecast_model.pkl', 'rb'))
 
 # تحميل بيانات السلاسل الزمنية
 with open('forecast_data_dict.pkl', 'rb') as f:
@@ -310,6 +310,7 @@ def predict():
     ]
     return jsonify({'recommended_crops': results})
 
+# ✅ endpoint 2: توقع إنتاج محصول لسنوات قادمة
 @app.route('/forecast', methods=['POST'])
 def forecast():
     data = request.get_json()
@@ -318,61 +319,24 @@ def forecast():
     years = data.get('years', 5)
 
     try:
-        # التأكد من أن المحصول موجود في البيانات المعدلة
         if crop not in forecast_data_dict:
             return jsonify({'error': 'المحصول غير موجود في البيانات'}), 404
 
-        # الحصول على السلسلة الزمنية للمحصول
         series = forecast_data_dict[crop]
-
-        # عرض السلسلة الزمنية للتأكد من شكل البيانات
-        print(f"بيانات السلسلة الزمنية للمحصول {crop}:")
-        print(series.head())  # عرض أول 5 قيم للسلسلة الزمنية
-
-        # التأكد من أن الفهرس هو فهرس زمني من نوع datetime
-        series.index = pd.to_datetime(series.index, format='%Y', errors='coerce')
-
-        # إزالة القيم المكررة (باستخدام التجميع مثل sum أو mean)
-        series = series.groupby(series.index).mean()  # تجميع البيانات باستخدام المتوسط
-
-        # عرض البيانات بعد تحويل الفهرس إلى datetime
-        print(f"بيانات السلسلة الزمنية بعد تحويل الفهرس:")
-        print(series.head())
-
-        # إزالة أي قيم مفقودة (NaN) بعد تحويل الفهرس
-        series = series.dropna()
-
-        # التأكد من ترتيب السلسلة الزمنية حسب السنة (الترتيب الزمني)
-        series = series.sort_index()
-
-        # التأكد من وجود بيانات كافية للتنبؤ
-        if len(series) < years:
-            return jsonify({'error': 'السلسلة الزمنية غير كافية للتنبؤ للسنوات المطلوبة'}), 400
-
-        # تحديد السنة الأخيرة في البيانات
         last_year = series.index.max()
+        future_years = [last_year + i for i in range(1, years + 1)]
+        full_range = np.arange(len(series) + years).reshape(-1, 1)
 
-        # إنشاء مجموعة بيانات كاملة تشمل السنوات المستقبلية
-        future_years = [last_year + pd.DateOffset(years=i) for i in range(1, years + 1)]
+        predictions = forecast_model.predict(full_range)[-years:]
 
-        # تحديد بداية ونهاية التنبؤ باستخدام عدد النقاط في السلسلة الزمنية
-        start = len(series)
-        end = start + years - 1
-
-        # إجراء التنبؤات
-        predictions = forecast_model.predict(start=start, end=end)
-
-        # تخزين التنبؤات
         results = {
-            str(year.year): round(value, 2)
+            str(int(year)): round(value, 2)
             for year, value in zip(future_years, predictions)
         }
 
-        # ترجمة المحصول
         translated_crop = forecast_translations.get(crop, crop)
 
         return jsonify({'crop': translated_crop, 'forecast': results})
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
