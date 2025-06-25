@@ -4,16 +4,77 @@ import numpy as np
 import pandas as pd
 from flask_cors import CORS
 
+
 # تحميل النموذج الأول والـ LabelEncoder
 model = pickle.load(open('crop_model_v2.pkl', 'rb'))
 label_encoder = pickle.load(open('label_encoder_v2.pkl', 'rb'))
 
 # تحميل نموذج التنبؤ المستقبلي
-forecast_model = pickle.load(open('forecast_model.pkl', 'rb'))
-
+forecast_model = pickle.load(open('forecast_model_new.pkl', 'rb'))
 # تحميل بيانات السلاسل الزمنية
-with open('forecast_data_dict.pkl', 'rb') as f:
-    forecast_data_dict = pickle.load(f)
+forecast_data_dict = {
+    "Almonds": [339953, 340171, 340167, 340167, 350167, 340167],
+    "Apples": [41233352, 38754374, 35160942, 36618428, 38812048, 37752730],
+    "Apricots": [5427646, 2972538, 4105570, 3282676, 3823991, 3712624],
+    "Artichokes": [1718608, 927436, 1300325, 1124578, 1207410, 1168370],
+    "Barley": [13176955, 8415608, 10171014, 9523834, 9862435, 9674468],
+    "Beans, dry": [53485, 31774, 41782, 38045, 38595, 39952],
+    "Broad beans and horse beans, dry": [793801, 437527, 651317, 526018, 560635, 544721],
+    "Carrots and turnips": [8639199, 4595139, 6529000, 5604232, 6046454, 5834984],
+    "Chick peas, dry": [1270330, 709330, 963113, 848308, 900243, 876749],
+    "Chillies and peppers, dry": [606827, 318878, 458530, 390800, 423649, 407718],
+    "Dates": [220429806, 215706035, 266647911, 241867723, 253921808, 248058214],
+    "Figs": [86072, 86011, 86006, 86005, 86005, 86005],
+    "Grapes": [29129991, 24220518, 29694355, 26390986, 27851046, 27205712],
+    "Hen eggs in shell, fresh": [29164081, 15553760, 22037355, 18948743, 20420076, 19719172],
+    "Horse meat, fresh or chilled (indigenous)": [-4, 0, -4, -1, -3, -1],
+    "Lemons and limes": [5037232, 2663560, 3806711, 3256174, 3521310, 3393622],
+    "Lentils, dry": [296147, 193446, 230104, 217019, 221690, 220023],
+    "Locust beans (carobs)": [932, 1004, 933, 1003, 934, 1002],
+    "Maize (corn)": [128776, 81041, 99196, 92291, 94918, 93919],
+    "Meat of camels, fresh or chilled": [9205503, 95675, 9205465, 95713, 9205428, 95750],
+    "Meat of camels, fresh or chilled (indigenous)": [4300881, 2256973, 3250390, 2767552, 3002229, 2888167],
+    "Meat of cattle with the bone, fresh or chilled": [107333380, 1131211, 107333361, 1131229, 107333343, 1131248],
+    "Meat of cattle with the bone, fresh or chilled (indigenous)": [49754570, 26096612, 37586379, 32006238, 34716299, 33400126],
+    "Meat of chickens, fresh or chilled": [108266237, 1133991, 108265953, 1134276, 108265668, 1134560],
+    "Meat of chickens, fresh or chilled (indigenous)": [49968847, 26334733, 37769143, 32237066, 34913538, 33618635],
+    "Meat of goat, fresh or chilled": [32452071, 338128, 32452069, 338129, 32452067, 338131],
+    "Meat of goat, fresh or chilled (indigenous)": [15230982, 7970951, 11510101, 9784822, 10625868, 10215871],
+    "Meat of pig with the bone, fresh or chilled (indigenous)": [212, 212, 213, 213, 213, 213],
+    "Meat of rabbits and hares, fresh or chilled (indigenous)": [19239, 19320, 19399, 19477, 19553, 19628],
+    "Meat of sheep, fresh or chilled": [405283865, 4249548, 405283394, 4250019, 405282923, 4250490],
+    "Meat of sheep, fresh or chilled (indigenous)": [187399398, 98314440, 141645676, 120569211, 130820877, 125834431],
+    "Meat of turkeys, fresh or chilled (indigenous)": [79020, 78936, 78931, 78930, 78930, 78930],
+    "Oats": [581504, 359023, 446053, 412008, 425326, 420116],
+    "Olives": [17113190, 9486791, 12965462, 11378717, 12102488, 11772350],
+    "Onions and shallots, dry": [34206550, 17949303, 25847514, 22010349, 23874548, 22968870],
+    "Oranges": [64066725, 33819720, 48444102, 41373235, 44791989, 43139026],
+    "Other beans, green": [6260726, 3313837, 4733811, 4049589, 4379285, 4220419],
+    "Other vegetables, fresh n.e.c.": [25010348, 13261133, 18912153, 16194182, 17501445, 16872690],
+    "Peaches and nectarines": [2733527, 1449314, 2065979, 1769864, 1912055, 1843776],
+    "Pears": [11558986, 6234268, 8734757, 7560527, 8111946, 7852999],
+    "Peas, dry": [234972, 131897, 178246, 157405, 166776, 162562],
+    "Plums and sloes": [1569975, 842858, 1186495, 1024091, 1100844, 1064570],
+    "Pomelos and grapefruits": [703, 706, 707, 707, 707, 707],
+    "Potatoes": [86703164, 46178655, 65531154, 56289359, 60702782, 58595150],
+    "Raw milk of camel": [9738, 9829, 9919, 10008, 10096, 10183],
+    "Raw milk of cattle": [51360109, 27061092, 38794547, 33128723, 35864623, 34543518],
+    "Raw milk of goats": [148860, 148858, 148858, 148858, 148858, 148858],
+    "Raw milk of sheep": [343163, 347727, 352092, 356267, 360262, 364083],
+    "Rice": [3228, 3905, 4450, 4317, 4496, 4422],
+    "Seed cotton, unginned": [3085, 2400, 3110, 2811, 2937, 2884],
+    "Shorn wool, greasy": [138030, 139679, 141329, 142979, 144628, 146278],
+    "Sorghum": [8741, 6483, 7077, 6921, 6962, 6951],
+    "Sugar beet": [6009, 5276, 6009, 5276, 6009, 5276],
+    "Sunflower seed": [1955, 1204, 1499, 1383, 1429, 1411],
+    "Tangerines, mandarins, clementines": [16092636, 8525481, 12169442, 10414694, 11259692, 10852783],
+    "Tomatoes": [37837387, 20288256, 28617661, 24664247, 26540670, 25650056],
+    "Unmanufactured tobacco": [127988, 71796, 97010, 85696, 90773, 88495],
+    "Vetches": [980, 582, 747, 678, 707, 695],
+    "Watermelons": [41662684, 21983663, 31503039, 26898210, 29125714, 28048199],
+    "Wheat": [61793022, 35181711, 46865127, 41735646, 43987691, 42998954]
+}
+
 # تحميل بيانات المحاصيل من ملف pkl
 with open('crops_data.pkl', 'rb') as f:
     df = pickle.load(f)
@@ -46,28 +107,64 @@ translations = {
 
 # قاموس ترجمة لمحاصيل التوقع (forecast)
 forecast_translations = {
+     "Almonds": "لوز",
     "Apples": "تفاح",
     "Apricots": "مشمش",
+    "Artichokes": "خرشف",
     "Barley": "شعير",
-    "Beans, dry": "فول جاف",
-    "Carrots and turnips": "جزر ولفت",
-    "Cauliflowers and broccoli": "قرنبيط وبروكلي",
-    "Chillies and peppers, dry": "فلفل حار مجفف",
-    "Cucumbers and gherkins": "خيار",
+    "Beans, dry": "فول",
+    "Broad beans and horse beans, dry": "فاصوليا",
+    "Carrots and turnips": "جزر",
+    "Chick peas, dry": "حمص",
+    "Chillies and peppers, dry": "فلفل حار",
     "Dates": "تمر",
     "Figs": "تين",
-    "Garlic": "ثوم",
     "Grapes": "عنب",
+    "Hen eggs in shell, fresh": "بيض دجاج",
+    "Horse meat, fresh or chilled (indigenous)": "لحم غنم",
     "Lemons and limes": "ليمون",
-    "Lettuce and chicory": "خس وشيكوريا",
-    "Maize": "ذرة",
-    "Onions, shallots, green": "بصل أخضر",
-    "Onions, dry": "بصل جاف",
+    "Lentils, dry": "عدس جاف",
+    "Locust beans (carobs)": "الخرنوب",
+    "Maize (corn)": "ذرة",
+    "Meat of camels, fresh or chilled": "لحم الجمال طازج أو مبرد",
+    "Meat of camels, fresh or chilled (indigenous)": "لحم الجمال طازج أو مبرد (محلي)",
+    "Meat of cattle with the bone, fresh or chilled": "لحم الأبقار بالعظم طازج أو مبرد",
+    "Meat of cattle with the bone, fresh or chilled (indigenous)": "لحم الأبقار بالعظم طازج أو مبرد (محلي)",
+    "Meat of chickens, fresh or chilled": "لحم الدجاج",
+    "Meat of chickens, fresh or chilled (indigenous)": "لحم الدجاج طازج أو مبرد (محلي)",
+    "Meat of goat, fresh or chilled": "لحم الماعز طازج أو مبرد",
+    "Meat of goat, fresh or chilled (indigenous)": "لحم الماعز طازج أو مبرد (محلي)",
+    "Meat of pig with the bone, fresh or chilled (indigenous)": "لحم الخنزير بالعظم طازج أو مبرد (محلي)",
+    "Meat of rabbits and hares, fresh or chilled (indigenous)": "لحم الأرانب والطقس طازج أو مبرد (محلي)",
+    "Meat of sheep, fresh or chilled": "لحم الضأن طازج أو مبرد",
+    "Meat of sheep, fresh or chilled (indigenous)": "لحم الضأن طازج أو مبرد (محلي)",
+    "Meat of turkeys, fresh or chilled (indigenous)": "لحم الديك الرومي طازج أو مبرد (محلي)",
+    "Oats": "شوفان",
+    "Olives": "زيتون",
+    "Onions and shallots, dry": "بصل وجبنة جافة",
     "Oranges": "برتقال",
-    "Peas, green": "بازلاء خضراء",
+    "Other beans, green": "فاصوليا خضراء",
+    "Other vegetables, fresh n.e.c.": "لفت",
+    "Peaches and nectarines": "خوخ و نكتارين",
+    "Pears": "كمثرى",
+    "Peas, dry": "بازلاء جافة",
+    "Plums and sloes": "برقوق وخوخ بري",
+    "Pomelos and grapefruits": "جريب فروت",
     "Potatoes": "بطاطا",
-    "Pumpkins, squash and gourds": "قرع وكوسة",
+    "Raw milk of camel": "حليب الجمل الخام",
+    "Raw milk of cattle": "حليب الأبقار الخام",
+    "Raw milk of goats": "حليب الماعز الخام",
+    "Raw milk of sheep": "حليب الأغنام الخام",
+    "Rice": "أرز",
+    "Seed cotton, unginned": "قطن غير مفروم",
+    "Shorn wool, greasy": "صوف جزئ رطب",
+    "Sorghum": "سرغوم",
+    "Sugar beet": "شمندر السكر",
+    "Sunflower seed": "بذور عباد الشمس",
+    "Tangerines, mandarins, clementines": "ماندارين، كليمينتين",
     "Tomatoes": "طماطم",
+    "Unmanufactured tobacco": "تبغ غير مصنع",
+    "Vetches": "بقول فيتش",
     "Watermelons": "بطيخ",
     "Wheat": "قمح"
 }
@@ -310,36 +407,28 @@ def predict():
     ]
     return jsonify({'recommended_crops': results})
 
-# ✅ endpoint 2: توقع إنتاج محصول لسنوات قادمة
 @app.route('/forecast', methods=['POST'])
 def forecast():
     data = request.get_json()
-    user_input = data.get('crop')
-    crop = reverse_forecast_translations.get(user_input, user_input)
+    user_input = data.get('crop')  # المحصول المدخل بالعربية
     years = data.get('years', 5)
 
-    try:
-        if crop not in forecast_data_dict:
-            return jsonify({'error': 'المحصول غير موجود في البيانات'}), 404
+    # استخدام القاموس العكسي لتحويل المحصول من العربية إلى الإنجليزية
+    crop = reverse_forecast_translations.get(user_input, user_input)
 
-        series = forecast_data_dict[crop]
-        last_year = series.index.max()
-        future_years = [last_year + i for i in range(1, years + 1)]
-        full_range = np.arange(len(series) + years).reshape(-1, 1)
+    if crop not in forecast_data_dict:
+        return jsonify({'error': f"المحصول '{user_input}' غير موجود في البيانات."}), 404
 
-        predictions = forecast_model.predict(full_range)[-years:]
+    crop_data = forecast_data_dict[crop]
 
-        results = {
-            str(int(year)): round(value, 2)
-            for year, value in zip(future_years, predictions)
-        }
+    if len(crop_data) == 0:
+        return jsonify({'error': f"لا توجد بيانات للمحصول '{user_input}'."}), 400
 
-        translated_crop = forecast_translations.get(crop, crop)
+    # تحديد السنوات المستقبلية
+    future_years = [2024 + i for i in range(1, years + 1)]
+    forecast_result = {str(year): round(crop_data[i], 2) for i, year in enumerate(future_years)}
 
-        return jsonify({'crop': translated_crop, 'forecast': results})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+    return jsonify({'crop': crop, 'forecast': forecast_result})
 
 # ✅ endpoint 3: الحصول على أفضل محصول في ولاية معينة
 @app.route('/best_crop', methods=['POST'])
